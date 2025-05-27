@@ -23,14 +23,5 @@ with DAG(
     run_databricks_job = DatabricksRunNowOperator(
         task_id='run_inference_pipeline',
         databricks_conn_id='databricks_default',  # Defined in Airflow connections
-        job_id='35216062022639'  # Replace this with your actual Databricks job ID in string format
-        '''
-        # Optional: Pass parameters to the Databricks for either the 
-        # Python or Notebook task type.
-        notebook_params={
-            "model_uri": "models:/credit_risk_model/Production",
-            "input_path": "/mnt/input_data/test.csv",
-            "output_path": "/mnt/output_data/predictions.csv"
-        }
-        '''
+        job_id='35216062022639',   # Replace this with your actual Databricks job ID in string format
     )
