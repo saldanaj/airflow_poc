@@ -11,3 +11,12 @@ __pycache__/
 *.log
 *.egg-info/
 *.egg
+
+# ignore airflow dir and files for local testing 
+logs/* 
+airflow.cfg
+airflow.db
+airflow-webserver.pid
+airflow-scheduler.pid
+airflow-worker.pid
+webserver_config.py
