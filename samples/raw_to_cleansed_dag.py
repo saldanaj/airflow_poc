@@ -17,10 +17,10 @@ from datadog_helper import DataDogHelper
 from dbt_operator import DbtHelper
 from sdp_airflow_dag import DAG
 
-glue_schema_registry = import_helper.load("glue_schema_registry.py")
+glue_schema_registry = import_helper.load("schema_registry.py")
 
 DEFAULT_ARGS = {
-    "owner": "cc-foundations-infra",
+    "owner": "infra",
     "depends_on_past": False,
     "retries": 0,
     "pool": "tdm-credit-card",
@@ -45,7 +45,7 @@ To trigger a full-refresh for a single table use:
 """
 
 with DAG(
-    dag_id="tdm-credit-card.raw_to_cleansed__tier2",
+    dag_id="tdm.raw_to_cleansed__tier2",
     default_args=DEFAULT_ARGS,
     tags=["tdm-credit-card"],
     schedule_interval="*/60 * * * *",
@@ -122,8 +122,8 @@ with DAG(
                 item_per_chunk = 1
 
             schemaRegistry = glue_schema_registry.SchemaRegistry(
-                registry_arn="arn:aws:glue:us-west-2:382513426234:registry/micb.credit-card.business-data-pipeline.registry-production",
-                assume_role_arn="arn:aws:iam::382513426234:role/micb.credit-card.business-data-pipeline.consumer-role-production",
+                registry_arn="registry-arn",
+                assume_role_arn="assume-role-arn",
                 assume_role_session_name="production.credit-card.airflow.raw_to_cleansed_dag.py",
                 table_name=table_name
             )
@@ -131,13 +131,13 @@ with DAG(
             cnt_schemas = len(schemaRegistry.schema_definitions)
 
             # report DD metrics on number of schemas found
-            logging.info(f"found {cnt_schemas} glue schemas")
+            logging.info(f"found {cnt_schemas} schemas")
             if table_name is not None:
-                logging.info(f"processing {table_name} glue schema")
+                logging.info(f"processing {table_name} schema")
 
             datadog.Metric.send(
                 metric=metric_name("schema_count"),
-                tags=["tdm:tdm-credit-card", "dag:tdm-credit-card.raw_to_cleansed"],
+                tags=["tdm:tdm-credit-card", "dag:tdm.raw_to_cleansed"],
                 points=[(time.time(), cnt_schemas)],
                 type="count",
             )
@@ -187,8 +187,8 @@ with DAG(
                     datadog.Metric.send(
                         metric=metric_name("created_file_count"),
                         tags=[
-                            "tdm:tdm-credit-card",
-                            "dag:tdm-credit-card.raw_to_cleansed",
+                            "tdm:tdm",
+                            "dag:tdm.raw_to_cleansed",
                         ],
                         points=[(time.time(), results["count_created_files"])],
                         type="count",
@@ -196,8 +196,8 @@ with DAG(
                     datadog.Metric.send(
                         metric=metric_name("skipped_file_count"),
                         tags=[
-                            "tdm:tdm-credit-card",
-                            "dag:tdm-credit-card.raw_to_cleansed",
+                            "tdm:tdm",
+                            "dag:tdm.raw_to_cleansed",
                         ],
                         points=[(time.time(), results["count_skipped_files"])],
                         type="count",
@@ -207,9 +207,9 @@ with DAG(
                     schemaRegistry.update_dbt_project_file_with_vars(dbt_path)
 
                     snowpipe_args = {
-                        "storage_integration": "TDM_CREDIT_CARD_PRODUCTION_INT",
-                        "s3_bucket": "micb.credit-card.business-data-pipeline.s3-bucket-production",
-                        "aws_sns_topic": "arn:aws:sns:us-west-2:382513426234:micb-credit-card-business-data-pipeline-s3-bucket-production-bucket-topic",
+                        "storage_integration": "tdm",
+                        "s3_bucket": "",
+                        "aws_sns_topic": "",
                         "data_source": "BDP",
                         "names": unzipped[1],
                     }
@@ -266,8 +266,8 @@ with DAG(
     # commented out for now, may utilize this later for triggering a dag run after this dag is complete
     trigger_dag_cc_epd_modeled = TriggerDagRunOperator(
         dag=dag,
-        task_id="tdm_credit_card.trigger_dag_cc_epd_modeled_dag",
-        trigger_dag_id="tdm-credit-card.cc_epd_modeled_dag__tier2",
+        task_id="tdm",
+        trigger_dag_id="tdm",
     )
 
     dbt_helper_task = PythonOperator(
